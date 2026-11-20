@@ -37,7 +37,7 @@ Flag,Default,Description
 --ports,Auto,"Override local UDP MAIN:LISTENER ports per suite (e.g., 1=6130:6131,2=6132:6133). Defaults to 6130/6131 for Suite 1, incrementing by 2 per suite."
 
 --fps,30.0,"Frame rate used to convert frame-based rate commands (""frames"": n) to seconds."
-
+Ask Nava how to implement the bridge.
 ## Requirements
 
 * Python 3.8+
