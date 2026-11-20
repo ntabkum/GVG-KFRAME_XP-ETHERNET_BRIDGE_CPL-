@@ -21,13 +21,21 @@ A Python WebSocket-to-UDP bridge for Grass Valley (GVG) K-Frame video switchers 
 
 ---
 Flag,Default,Description
+
 --ip,10.1.32.10,IP address or hostname of the GVG K-Frame.
+
 --suite,1,"Target switcher suite (1, 2, 3, or 4)."
+
 --ws-host,0.0.0.0,Local WebSocket bind address.
+
 --ws-port,8765,Local WebSocket bind port.
+
 --live,False,Enable live UDP/TCP communication with the frame (omit for dry-run).
+
 --name,NTv2,"Base panel name shown in K-Frame connections (<name> - Suite N, max 24 ASCII chars)."
+
 --ports,Auto,"Override local UDP MAIN:LISTENER ports per suite (e.g., 1=6130:6131,2=6132:6133). Defaults to 6130/6131 for Suite 1, incrementing by 2 per suite."
+
 --fps,30.0,"Frame rate used to convert frame-based rate commands (""frames"": n) to seconds."
 
 ## Requirements
