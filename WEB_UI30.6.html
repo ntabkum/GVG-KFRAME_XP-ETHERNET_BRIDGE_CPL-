@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Switcher Controller & Beat Sync Engine (32-Source)</title>
+  <title>SAMBA Live Switcher Controller & Beat Sync Engine (32-Source)</title>
   <!-- PDF.js library for client-side PDF script conversion -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <script>
@@ -1542,6 +1542,7 @@
               <option value="1">M/E 2</option>
               <option value="2">M/E 3</option>
               <option value="3">PGM/PST</option>
+              <option value="4">M/E 4</option>
             </select>
           </div>
         </div>
@@ -1568,6 +1569,10 @@
               <button class="keyer-btn" id="key2Btn" onclick="toggleVirtualKeyer(2)">KEY 2</button>
               <button class="keyer-btn" id="key3Btn" onclick="toggleVirtualKeyer(3)">KEY 3</button>
               <button class="keyer-btn" id="key4Btn" onclick="toggleVirtualKeyer(4)">KEY 4</button>
+              <button class="keyer-btn" id="key5Btn" onclick="toggleVirtualKeyer(5)">KEY 5</button>
+              <button class="keyer-btn" id="key6Btn" onclick="toggleVirtualKeyer(6)">KEY 6</button>
+              <button class="keyer-btn" id="key7Btn" onclick="toggleVirtualKeyer(7)">KEY 7</button>
+              <button class="keyer-btn" id="key8Btn" onclick="toggleVirtualKeyer(8)">KEY 8</button>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
               <button class="btn-cut" onclick="executeVirtualCut()">CUT</button>
@@ -1620,6 +1625,18 @@
               <option value="4">Suite 4</option>
             </select>
           </div>
+          <div class="setting-item">
+            <span class="setting-label">SWITCHER FRAME RATE (RATES S:FF):</span>
+            <select id="switcherFpsSelect" class="setting-select" onchange="onSwitcherFpsChanged()"
+                    title="Frame rate used to turn S:FF rates into the seconds the frame wants. Sent to the bridge when changed and on connect.">
+              <option value="auto" selected>Follow timecode FPS</option>
+              <option value="24">24 FPS</option>
+              <option value="25">25 FPS</option>
+              <option value="30">30 FPS</option>
+              <option value="50">50 FPS</option>
+              <option value="60">60 FPS</option>
+            </select>
+          </div>
         </div>
 
         <div style="display:flex; gap:10px; margin-top:8px;">
@@ -1640,6 +1657,7 @@
               <option value="1">M/E 2</option>
               <option value="2">M/E 3</option>
               <option value="3">PGM/PST</option>
+              <option value="4">M/E 4</option>
             </select>
             <button class="btn btn-bpm" style="padding:3px 8px; font-size:0.7rem;" onclick="requestCplFrameStatus()">🔄 READ ME STATUS</button>
           </div>
@@ -1666,18 +1684,58 @@
               <button class="keyer-btn" id="ipKey2Btn" onclick="toggleIpKeyer(2)">KEY 2</button>
               <button class="keyer-btn" id="ipKey3Btn" onclick="toggleIpKeyer(3)">KEY 3</button>
               <button class="keyer-btn" id="ipKey4Btn" onclick="toggleIpKeyer(4)">KEY 4</button>
+              <button class="keyer-btn" id="ipKey5Btn" onclick="toggleIpKeyer(5)">KEY 5</button>
+              <button class="keyer-btn" id="ipKey6Btn" onclick="toggleIpKeyer(6)">KEY 6</button>
+              <button class="keyer-btn" id="ipKey7Btn" onclick="toggleIpKeyer(7)">KEY 7</button>
+              <button class="keyer-btn" id="ipKey8Btn" onclick="toggleIpKeyer(8)">KEY 8</button>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
               <button class="btn-cut" onclick="triggerIpCplTake()" title="TAKE: flip-flop / cut B to A on the selected M/E">TAKE</button>
               <button class="btn-auto" onclick="triggerIpCplTransition('auto')">AUTO TRANS</button>
               <div style="display:inline-flex; align-items:center; gap:3px;"
                    title="AUTO TRANS RATE for the target M/E, seconds : frames (1:00 = 1 second). Sent as soon as you change it. Not read back from the frame.">
-                <span style="font-size:0.7rem; color:var(--text-muted); font-weight:bold;">RATE</span>
+                <span style="font-size:0.7rem; color:var(--text-muted); font-weight:bold;">TRANS RATE</span>
                 <input type="number" id="cplAutoRateSecs" class="table-input" min="0" max="99" placeholder="s" style="width:46px; text-align:center;" onchange="applyIpAutoRate()">
                 <span style="color:#888; font-weight:bold;">:</span>
                 <input type="number" id="cplAutoRateFrms" class="table-input" min="0" max="29" placeholder="ff" style="width:46px; text-align:center;" onchange="applyIpAutoRate()">
               </div>
+              <div style="display:inline-flex; align-items:center; gap:3px; margin-left:10px; padding-left:10px; border-left:1px solid #444;"
+                   title="KEYER RATE for the target M/E, seconds : frames. Sent as soon as you change it. Not read back from the frame.">
+                <span style="font-size:0.7rem; color:var(--text-muted); font-weight:bold;">KEY</span>
+                <select id="cplKeyRateNum" class="table-input" style="width:46px;" onchange="refreshIpKeyerRateBox()">
+                  <option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                  <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                </select>
+                <span style="font-size:0.7rem; color:var(--text-muted); font-weight:bold;">RATE</span>
+                <input type="number" id="cplKeyRateSecs" class="table-input" min="0" max="99" placeholder="s" style="width:46px; text-align:center;" onchange="applyIpKeyerRate()">
+                <span style="color:#888; font-weight:bold;">:</span>
+                <input type="number" id="cplKeyRateFrms" class="table-input" min="0" max="29" placeholder="ff" style="width:46px; text-align:center;" onchange="applyIpKeyerRate()">
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUX BUS ROUTING -->
+      <div class="panel">
+        <div class="panel-title">
+          <span>🔀 AUX Bus Routing (AUX 1 - 48)</span>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span style="font-size:0.75rem; color:#888; font-weight:bold;">AUX:</span>
+            <select id="auxSelect" style="background:#111; color:var(--accent-cyan); border:1px solid #444; border-radius:3px; padding:3px 8px; font-weight:bold;" onchange="renderAuxBus()"></select>
+            <span style="font-size:0.75rem; color:#888; font-weight:bold;">SRC #:</span>
+            <input type="number" id="auxCustomSrc" class="table-input" min="1" max="809" placeholder="1-809" style="width:64px; text-align:center;"
+                   title="Any source number 1-809 (the grid below shows sources 1-32)">
+            <button class="btn btn-bpm" style="padding:3px 8px; font-size:0.7rem;" onclick="routeAuxCustom()">ROUTE</button>
+          </div>
+        </div>
+        <div class="virtual-switcher-container">
+          <div class="bus-bar">
+            <div class="bus-header">
+              <span class="bus-label" style="color:var(--accent-amber);" id="auxBusLabel">AUX 1 SOURCE</span>
+              <span id="auxHint" style="font-size:0.7rem; color:var(--text-muted);" title="Aux routing is sent as a take. The highlighted source is what the frame reports for this aux (the bridge subscribes to all 48 aux buses). If the bridge cannot read it (started with --no-aux-sub) it is only the last one routed.">last routed - not read back from the frame</span>
+            </div>
+            <div class="bus-btn-grid" id="auxSrcGroup"></div>
           </div>
         </div>
       </div>
@@ -1741,7 +1799,11 @@
     let bridgeWs = null;
     let currentPgmCam = 1;
     let currentPvwCam = 2;
-    let activeKeyers = [false, false, false, false];
+    let activeKeyers = {};   // me index -> [8 booleans] (last commanded on/off state, per M/E)
+    function keyArr(me) {
+      if (!activeKeyers[me]) activeKeyers[me] = [false, false, false, false, false, false, false, false];
+      return activeKeyers[me];
+    }
 
     let tapTimes = [];
     let tapTimeout = null;
@@ -1768,12 +1830,13 @@
       sourceLabels[i] = `CAM ${i}`;
     }
 
+    const BLACK_SRC = 740;   // the frame's black source (what unrouted aux / M/E buses report)
     function getSourceName(srcNum) {
       if (typeof srcNum === 'string' && isNaN(parseInt(srcNum, 10))) {
         return srcNum;
       }
       const n = parseInt(srcNum, 10);
-      return sourceLabels[n] || `SRC ${n}`;
+      return sourceLabels[n] || (n === BLACK_SRC ? 'BLK' : `SRC ${n}`);
     }
 
     function parseSourceNumber(srcStr) {
@@ -1794,9 +1857,9 @@
 
     /* AUTO TRANS RATE: typed as S:FF (like the cue durations), kept as TOTAL FRAMES, and sent to the
        frame as a real rate command in float seconds (1:00 = 1.0 s). Not read back from the frame. */
-    const AUTO_RATE_MAX_SECS = 99;
-    const IP_ME_NAMES = ['M/E 1', 'M/E 2', 'M/E 3', 'PGM/PST'];
-    const ipAutoRate = { 0: null, 1: null, 2: null, 3: null };   // frames last sent, per M/E
+    const AUTO_RATE_MAX_SECS = 99;   // bridge limit: rates above 99 s are refused
+    const IP_ME_NAMES = ['M/E 1', 'M/E 2', 'M/E 3', 'PGM/PST', 'M/E 4'];
+    const ipAutoRate = { 0: null, 1: null, 2: null, 3: null, 4: null };   // frames last sent, per M/E
 
     function sfToFrames(s, f) {
       return (parseInt(s, 10) || 0) * getActiveFps() + (parseInt(f, 10) || 0);
@@ -1816,9 +1879,169 @@
       return Math.min(f, AUTO_RATE_MAX_SECS * getActiveFps());
     }
     function sendAutoTransRate(me, frames) {
-      sendCplBridgeJson({ action: "transition_rate", me: me, seconds: frames / getActiveFps() });
+      // the bridge converts frames -> seconds with the fps sent along (rate = frames / fps)
+      sendCplBridgeJson({ action: "rate", kind: "transition", me: me, frames: frames, fps: getActiveFps() });
       ipAutoRate[me] = frames;
+      lastRateFps = getActiveFps();
       refreshIpAutoRateBox();
+    }
+
+    /* KEYER RATE (keyers 1-8 per M/E): same S:FF entry as the transition rate, kept as total frames */
+    const KEYER_MAX = 8;
+    const ipKeyerRate = {};   // "me:keyer" -> frames last sent
+    function selectedKeyerForRate() {
+      const el = document.getElementById('cplKeyRateNum');
+      return el ? (parseInt(el.value, 10) || 1) : 1;
+    }
+    function sendKeyerRate(me, keyer, frames) {
+      sendCplBridgeJson({ action: "rate", kind: "keyer", me: me, keyer: keyer, frames: frames, fps: getActiveFps() });
+      ipKeyerRate[`${me}:${keyer}`] = frames;
+      lastRateFps = getActiveFps();
+      refreshIpKeyerRateBox();
+    }
+    function refreshIpKeyerRateBox() {
+      const sEl = document.getElementById('cplKeyRateSecs');
+      const fEl = document.getElementById('cplKeyRateFrms');
+      if (!sEl || !fEl) return;
+      fEl.max = getActiveFps() - 1;
+      const fr = ipKeyerRate[`${getSelectedMe()}:${selectedKeyerForRate()}`];
+      if (fr == null) { sEl.value = ''; fEl.value = ''; return; }
+      const t = framesToSF(fr);
+      sEl.value = t.s;
+      fEl.value = t.f;
+    }
+    function applyIpKeyerRate() {
+      const sEl = document.getElementById('cplKeyRateSecs');
+      const fEl = document.getElementById('cplKeyRateFrms');
+      if (String(sEl.value).trim() === '' && String(fEl.value).trim() === '') { refreshIpKeyerRateBox(); return; }
+      if (!bridgeWs || bridgeWs.readyState !== WebSocket.OPEN) {
+        showAlert("KEYER RATE NOT SENT: bridge is not connected.");
+        refreshIpKeyerRateBox();
+        return;
+      }
+      const frames = sfToFrames(sEl.value, fEl.value);
+      if (frames < 1 || frames > AUTO_RATE_MAX_SECS * getActiveFps()) {
+        showAlert(`Keyer rate must be between 0:01 and ${AUTO_RATE_MAX_SECS}:00 (S:FF). Nothing was sent.`);
+        refreshIpKeyerRateBox();
+        return;
+      }
+      const me = getSelectedMe();
+      const keyer = selectedKeyerForRate();
+      sendKeyerRate(me, keyer, frames);
+      showAlert(`KEY ${keyer} rate ${fmtSF(frames)} sent to ${IP_ME_NAMES[me] || 'M/E'}`, true);
+    }
+
+    /* SWITCHER FRAME RATE: the fps behind every S:FF rate. "auto" follows the timecode FPS select;
+       24/25/30/50/60 can be forced. The bridge is told (set_fps) on change and once per connection;
+       every rate command also carries its own fps, so a stale bridge setting can never skew a rate. */
+    let lastRateFps = null;
+    let fpsSyncPending = true;
+    function sendBridgeFps() {
+      if (bridgeWs && bridgeWs.readyState === WebSocket.OPEN) sendCplBridgeJson({ action: "set_fps", fps: getActiveFps() });
+    }
+    function refreshFpsDependentInputs() {
+      const fps = getActiveFps();
+      ['cplAutoRateFrms', 'cplKeyRateFrms', 'newCueTransDurF'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.max = fps - 1;
+      });
+      refreshIpAutoRateBox();
+      refreshIpKeyerRateBox();
+    }
+    function onSwitcherFpsChanged() {
+      const fps = getActiveFps();
+      if (lastRateFps && lastRateFps !== fps) {          // keep the same durations in seconds
+        const k = fps / lastRateFps;
+        Object.keys(ipAutoRate).forEach(m => { if (ipAutoRate[m] != null) ipAutoRate[m] = Math.round(ipAutoRate[m] * k); });
+        Object.keys(ipKeyerRate).forEach(m => { ipKeyerRate[m] = Math.round(ipKeyerRate[m] * k); });
+      }
+      lastRateFps = fps;
+      refreshFpsDependentInputs();
+      try { renderCueTable(); } catch (e) {}
+      sendBridgeFps();
+    }
+
+    /* AUX BUS ROUTING (aux 1-48). Sent as an aux take; shows the last source routed (not read back from the frame). */
+    const AUX_MAX = 48;
+    let auxState = {};        // aux number -> source last routed
+    let auxFromFrame = false;  // true once the bridge has reported an aux source read from the frame
+    let lastAuxSend = null;   // { aux, prev } so a refused command can be undone in the UI
+    function getSelectedAux() {
+      const el = document.getElementById('auxSelect');
+      return el ? (parseInt(el.value, 10) || 1) : 1;
+    }
+    function renderAuxBus() {
+      const sel = document.getElementById('auxSelect');
+      const grid = document.getElementById('auxSrcGroup');
+      if (!sel || !grid) return;
+      if (sel.options.length !== AUX_MAX) {
+        const keep = sel.value;
+        sel.innerHTML = '';
+        for (let a = 1; a <= AUX_MAX; a++) {
+          const o = document.createElement('option');
+          o.value = String(a);
+          o.innerText = `AUX ${a}`;
+          sel.appendChild(o);
+        }
+        if (keep) sel.value = keep;
+      }
+      const aux = getSelectedAux();
+      const cur = auxState[aux];
+      const hint = document.getElementById('auxHint');
+      if (hint) {
+        hint.innerText = auxFromFrame ? 'synced from the frame' : 'last routed - not read back from the frame';
+        hint.style.color = auxFromFrame ? 'var(--accent-green, #4caf50)' : 'var(--text-muted)';
+      }
+      const label = document.getElementById('auxBusLabel');
+      if (label) label.innerText = `AUX ${aux} SOURCE: ${cur ? `${getSourceName(cur)} (#${cur})` : '--'}`;
+      grid.innerHTML = '';
+      for (let i = 1; i <= 32; i++) {
+        const btn = document.createElement('button');
+        btn.className = `switcher-btn ${i === cur ? 'pvw-active' : ''}`;
+        btn.innerHTML = `<span class="src-num">#${i}</span><span class="src-alias">${getSourceName(i)}</span>`;
+        btn.onclick = () => routeAux(i);
+        grid.appendChild(btn);
+      }
+      const blk = document.createElement('button');   // route black to this aux
+      blk.className = `switcher-btn ${cur === BLACK_SRC ? 'pvw-active' : ''}`;
+      blk.innerHTML = `<span class="src-num">#${BLACK_SRC}</span><span class="src-alias">BLK</span>`;
+      blk.onclick = () => routeAux(BLACK_SRC);
+      grid.appendChild(blk);
+    }
+    function routeAux(src) {
+      if (!bridgeWs || bridgeWs.readyState !== WebSocket.OPEN) {
+        showAlert("AUX ROUTE NOT SENT: bridge is not connected.");
+        return;
+      }
+      const aux = getSelectedAux();
+      lastAuxSend = { aux: aux, prev: auxState[aux] };
+      sendCplBridgeJson({ action: "aux", aux: aux, source: src });
+      auxState[aux] = src;
+      renderAuxBus();
+      showAlert(`AUX ${aux} <- ${getSourceName(src)} (#${src}) sent`, true);
+    }
+    function routeAuxCustom() {
+      const el = document.getElementById('auxCustomSrc');
+      const n = parseInt(el ? el.value : '', 10);
+      if (!Number.isInteger(n) || n < 1 || n > 809) {
+        showAlert("Aux source must be a number from 1 to 809. Nothing was sent.");
+        return;
+      }
+      routeAux(n);
+    }
+    function undoLastAuxSend() {
+      if (!lastAuxSend) return;
+      if (lastAuxSend.prev === undefined) delete auxState[lastAuxSend.aux]; else auxState[lastAuxSend.aux] = lastAuxSend.prev;
+      lastAuxSend = null;
+      renderAuxBus();
+    }
+    /* last-commanded state the bridge remembers (status reply / rate_set event) -> UI boxes */
+    function applyBridgeRateState(me, transSecs, keyerSecs) {
+      const fps = getActiveFps();
+      lastRateFps = fps;
+      if (transSecs !== null && transSecs !== undefined) ipAutoRate[me] = Math.round(transSecs * fps);
+      Object.keys(keyerSecs || {}).forEach(k => { ipKeyerRate[`${me}:${k}`] = Math.round(keyerSecs[k] * fps); });
+      if (me === getSelectedMe()) { refreshIpAutoRateBox(); refreshIpKeyerRateBox(); }
     }
     function refreshIpAutoRateBox() {
       const sEl = document.getElementById('cplAutoRateSecs');
@@ -1859,7 +2082,9 @@
     /* WAIT TIME HELPER FOR TRANSITION DURATION + 250ms SAFETY BUFFER */
     function getTransitionWaitMs(frames) {
       const f = parseInt(frames, 10) || 30;
-      return Math.ceil((f / 29.97) * 1000) + 250;
+      const nominal = getActiveFps();
+      const real = (nominal === 30) ? 29.97 : (nominal === 60 ? 59.94 : nominal);
+      return Math.ceil((f / real) * 1000) + 250;
     }
 
     /* PRESET STAGED CUE IN PREVIEW (PVW XPT + TYPE MACRO 997/998 + direct AUTO TRANS RATE frame) */
@@ -3540,6 +3765,7 @@
           cplMeTarget: document.getElementById('cplMeTargetSelect') ? document.getElementById('cplMeTargetSelect').value : "0",
           startTc: document.getElementById('startTcInput') ? document.getElementById('startTcInput').value : "01:00:00:00",
           ltcFps: document.getElementById('ltcFpsSelect') ? document.getElementById('ltcFpsSelect').value : "30",
+          switcherFps: document.getElementById('switcherFpsSelect') ? document.getElementById('switcherFpsSelect').value : "auto",
           audioDeviceId: document.getElementById('audioDeviceSelect') ? document.getElementById('audioDeviceSelect').value : "default",
           videoDeviceId: document.getElementById('videoDeviceSelect') ? document.getElementById('videoDeviceSelect').value : "default",
           videoRes: document.getElementById('videoResSelect') ? document.getElementById('videoResSelect').value : "auto",
@@ -3647,6 +3873,10 @@
             if (document.getElementById('quickTrigTcInput')) document.getElementById('quickTrigTcInput').value = hs.startTc;
           }
           if (hs.ltcFps && document.getElementById('ltcFpsSelect')) document.getElementById('ltcFpsSelect').value = hs.ltcFps;
+          if (hs.switcherFps && document.getElementById('switcherFpsSelect')) {
+            document.getElementById('switcherFpsSelect').value = hs.switcherFps;
+            try { lastRateFps = getActiveFps(); refreshFpsDependentInputs(); } catch (e) {}
+          }
           if (hs.audioDeviceId) selectedAudioDeviceId = hs.audioDeviceId;
           if (hs.videoDeviceId) selectedVideoDeviceId = hs.videoDeviceId;
           if (hs.videoRes && document.getElementById('videoResSelect')) document.getElementById('videoResSelect').value = hs.videoRes;
@@ -5188,6 +5418,7 @@
     function renderIpCplBuses() {
       const pgmGroup = document.getElementById('ipPgmBusGroup');
       const pvwGroup = document.getElementById('ipPvwBusGroup');
+      if (typeof renderAuxBus === 'function') renderAuxBus();
       if (!pgmGroup || !pvwGroup) return;
 
       pgmGroup.innerHTML = ''; pvwGroup.innerHTML = '';
@@ -5299,12 +5530,14 @@
       showAlert(`Fired K-Frame Macro #${n}`, true);
     }
 
-    /* KEYERS 1-4 (CPL key frames verified against panel captures for M/E 1; other M/Es are extrapolated) */
+    /* KEYERS 1-8 per M/E: on/off is a real bridge command (verified against panel captures for M/E 1-4, keyers 1-4;
+       PGM/PST key 1 also verified; keyers 5-8 follow the same pattern). The state shown is the last one commanded, per M/E. */
     let lastKeyerSendTs = 0;
 
     function refreshKeyerButtons() {
-      for (let i = 1; i <= 4; i++) {
-        const on = !!activeKeyers[i - 1];
+      const arr = keyArr(getSelectedMe());
+      for (let i = 1; i <= 8; i++) {
+        const on = !!arr[i - 1];
         [`key${i}Btn`, `ipKey${i}Btn`].forEach(id => {
           const el = document.getElementById(id);
           if (el) el.classList.toggle('active', on);
@@ -5319,13 +5552,13 @@
       }
       const sel = document.getElementById(meSelectId);
       const me = sel ? (parseInt(sel.value, 10) || 0) : 0;
-      const state = !activeKeyers[n - 1];
+      const state = !keyArr(me)[n - 1];
       sendCplBridgeJson({ action: "key", keyer: n, state: state, me: me });
-      activeKeyers[n - 1] = state;
+      keyArr(me)[n - 1] = state;
       lastKeyerSendTs = Date.now();
       refreshKeyerButtons();
-      showAlert(`KEY ${n} ${state ? 'ON' : 'OFF'} sent (M/E ${me + 1}) - verifying with frame...`, true);
-      // Read the real state back; applyKeyerSnapshot() corrects the buttons if the frame disagrees.
+      showAlert(`KEY ${n} ${state ? 'ON' : 'OFF'} sent (${IP_ME_NAMES[me] || 'M/E ' + (me + 1)})`, true);
+      // Ask the bridge for its state; applyKeyerSnapshot() corrects the buttons if it disagrees (e.g. a command was refused).
       setTimeout(() => sendCplBridgeJson({ action: "status", me: me }), 800);
     }
 
@@ -5336,17 +5569,19 @@
       if (!data || !data.keys || typeof data.keys !== 'object') return;
       const mismatches = [];
       let seen = 0;
-      for (let i = 1; i <= 4; i++) {
+      const kme = parseInt(data.me, 10) || 0;
+      const arr = keyArr(kme);
+      for (let i = 1; i <= 8; i++) {
         if (!(String(i) in data.keys)) continue;
         seen++;
         const real = !!data.keys[String(i)];
-        if (activeKeyers[i - 1] !== real) mismatches.push(`KEY ${i} is ${real ? 'ON' : 'OFF'}`);
-        activeKeyers[i - 1] = real;
+        if (arr[i - 1] !== real) mismatches.push(`KEY ${i} is ${real ? 'ON' : 'OFF'}`);
+        arr[i - 1] = real;
       }
       if (!seen) return;
       refreshKeyerButtons();
       if (mismatches.length && Date.now() - lastKeyerSendTs < 6000) {
-        showAlert(`Frame did NOT confirm key command: ${mismatches.join(', ')} (M/E ${(data.me || 0) + 1}). Buttons corrected.`);
+        showAlert(`Bridge reports a different keyer state: ${mismatches.join(', ')} (${IP_ME_NAMES[kme] || 'M/E ' + (kme + 1)}). Buttons corrected.`);
       }
     }
 
@@ -5519,6 +5754,25 @@
         applyStatusReply(msg.data);
       }
 
+      // aux routing / rates commanded from any UI connected to the bridge
+      if (msg.event === 'aux_routed') {
+        if (msg.from_frame) auxFromFrame = true;
+        auxState[msg.aux] = msg.source;
+        renderAuxBus();
+        return;
+      }
+      if (msg.event === 'key_set') {
+        keyArr(parseInt(msg.me, 10) || 0)[(parseInt(msg.keyer, 10) || 1) - 1] = !!msg.state;
+        refreshKeyerButtons();
+        return;
+      }
+      if (msg.event === 'rate_set') {
+        const sec = msg.seconds;
+        if (msg.kind === 'keyer') applyBridgeRateState(msg.me, null, { [msg.keyer]: sec });
+        else applyBridgeRateState(msg.me, sec, null);
+        return;
+      }
+
       // Bridge tells us what suite / IP it is really using (on connect and after every change)
       if (msg.event === 'bridge_config') {
         handleBridgeConfigEvent(msg);
@@ -5531,8 +5785,9 @@
       }
       if (msg.event === 'me_bus') return;   // A/B bus sources pushed by the frame (reserved for the XPT A/B sync)
       // Surface frame-command problems instead of failing silently
-      if (['crosspoint', 'transition', 'transition_rate', 'transition_type', 'key', 'macro'].includes(msg.action) || (msg.status === 'error' && !msg.action)) {
+      if (['crosspoint', 'transition', 'transition_rate', 'transition_type', 'key', 'macro', 'rate', 'aux', 'set_fps'].includes(msg.action) || (msg.status === 'error' && !msg.action)) {
         if (msg.status === 'error') {
+          if (msg.action === 'aux') undoLastAuxSend();
           showAlert(`Frame command FAILED (${msg.action || 'invalid message'}): ${msg.message}`);
         } else if (String(msg.message || '').startsWith('dry-run') && Date.now() - (window._lastDryRunAlert || 0) > 10000) {
           window._lastDryRunAlert = Date.now();
@@ -5787,6 +6042,8 @@
       syncMeSelectors(me);
       applyMeTallyToUI(me);      // instant, from the cache
       refreshIpAutoRateBox();    // rate last entered for this M/E (blank if none yet)
+      refreshIpKeyerRateBox();
+      refreshKeyerButtons();     // keyer on/off state of this M/E
       requestCplFrameStatus();   // then confirm with the bridge
     }
 
@@ -5798,7 +6055,15 @@
     }
 
     function applyStatusReply(d) {
-      if (!d || d.pgm === undefined) return;
+      if (!d) return;
+      if (d.aux && typeof d.aux === 'object') {
+        Object.keys(d.aux).forEach(k => { auxState[parseInt(k, 10)] = d.aux[k]; });
+        renderAuxBus();
+      }
+      if (d.me !== undefined && (d.transition_rate !== undefined || d.keyer_rates)) {
+        applyBridgeRateState(parseInt(d.me, 10) || 0, d.transition_rate, d.keyer_rates);
+      }
+      if (d.pgm === undefined) return;
       const me = parseInt(d.me, 10) || 0;
       if (d.known && d.pgm !== null) {
         meTallyCache[me] = { pgm: d.pgm, pvw: d.pvw };
@@ -5851,6 +6116,11 @@
       if (cplPort && msg.tx_port) cplPort.value = msg.tx_port;
       if (tallyPort && msg.tally_port) tallyPort.value = msg.tally_port;
 
+      if (fpsSyncPending) {
+        fpsSyncPending = false;
+        if (msg.fps === undefined || Math.abs(Number(msg.fps) - getActiveFps()) > 1e-6) sendBridgeFps();
+      }
+
       const firstConfig = (lastBridgeSuite === null);
       if (!firstConfig && lastBridgeSuite !== msg.suite) meTallyCache = {};   // old suite's state is invalid
       lastBridgeSuite = msg.suite;
@@ -5871,6 +6141,7 @@
         bridgeWs.onopen = () => {
           badge.className = "trigger-badge fired";
           badge.innerText = "WS CONNECTED";
+          fpsSyncPending = true;
           startRemoteRecordistTelemetry();
           showAlert("Connected to CPL Bridge! Live K-Frame Tally & Remote Recordist active.", true);
         };
@@ -5892,6 +6163,7 @@
         bridgeWs.onopen = () => {
           badge.className = "trigger-badge fired";
           badge.innerText = "WS CONNECTED";
+          fpsSyncPending = true;
           startRemoteRecordistTelemetry();
           showAlert("Connected to Switcher Bridge!", true);
         };
@@ -5936,6 +6208,11 @@
 
 
     function getActiveFps() {
+      const sw = document.getElementById('switcherFpsSelect');
+      if (sw && sw.value !== 'auto') {
+        const forced = parseInt(sw.value, 10);
+        if (forced > 0) return forced;
+      }
       const fpsMode = document.getElementById('ltcFpsSelect') ? document.getElementById('ltcFpsSelect').value : "29.97NDF";
       if (fpsMode.includes("23.98")) return 24;
       if (fpsMode.includes("25")) return 25;
