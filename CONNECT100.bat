@@ -6,7 +6,7 @@ set /p "USER_IP=Enter GVG XP/K Frame X IP address (default 127.0.0.1): "
 if "%USER_IP%"=="" set USER_IP=127.0.0.1
 set /p "USER_SUITE=Enter SUITE (1-4) (default 1): "
 if "%USER_SUITE%"=="" set USER_SUITE=1
-set /p "USER_FPS=Enter FPS for Transition Rate Calculation (24, 25, 30, 60) (default 30): "
+set /p "USER_FPS=Enter FPS for Transition Rate Calculation (24, 25, 29.97/30, 50, 59.94/60) (default 30): "
 if "%USER_FPS%"=="" set USER_FPS=30
 set /p "USER_NAME=Enter panel name shown in the frame (default NTv2): "
 if "%USER_NAME%"=="" set USER_NAME=NTv2
