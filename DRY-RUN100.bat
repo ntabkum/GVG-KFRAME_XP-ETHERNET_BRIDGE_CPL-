@@ -1,4 +1,4 @@
 @echo off
 cd /d "%~dp0"
 
-python GVG_CPL_V100.py
+start "NT Bridge - DRY-RUN" python GVG_CPL_V100.py

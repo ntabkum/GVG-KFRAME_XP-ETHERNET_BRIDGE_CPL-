@@ -60,7 +60,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 INITIAL_SERVER_PORT = 5000
 PORT_ANNOUNCE_SERVER_PORT = 5001
 TALLY_PORT = 2012
-MODULE_VERSION = "UNIVERSAL"
+MODULE_VERSION = "20.1.1"
 CONN_ID = "main"
 
 # M/E indices accepted from the UI: 0-2 = ME1-ME3, 3 = PGM, 4 = ME4 (see ME-bus subscriptions / tally VPE names)
@@ -111,6 +111,23 @@ PKT_HELLO = bytes([0x00, 0x01, 0x00, 0x00])       # packet 3, 14 / client heartb
 PKT_ACK1 = bytes([0x00, 0x02, 0x00, 0x01])        # expected 6, 17 / packet 10
 
 
+def parse_module_version(value):
+    """'20.1.1' or 'V20.1.1' -> '20.1.1' (the bridge adds the leading V itself). Letters, digits, . _ - only."""
+    v = str(value or "").strip()
+    if v[:1] in ("V", "v"):
+        v = v[1:]
+    if not v or len(v) > 24 or not v.isascii() or not all(ch.isalnum() or ch in "._-" for ch in v):
+        raise ValueError(f"bad version '{value}' (use e.g. 20.1.1; letters, digits, . _ - only, max 24 chars)")
+    return v
+
+
+def _version_arg(value):
+    try:
+        return parse_module_version(value)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e))
+
+
 def sanitize_panel_name(name, default="NTv2", max_len=24):
     """Base panel name shown in the frame's panel connections: printable ASCII only, trimmed, max_len chars."""
     clean = "".join(ch if 32 <= ord(ch) < 127 else "?" for ch in str(name or "")).strip()
@@ -152,7 +169,7 @@ class HandshakeConnection:
                  initial_port=INITIAL_SERVER_PORT, announce_port=PORT_ANNOUNCE_SERVER_PORT,
                  heartbeat_interval=1.0, handshake_timeout=10.0, max_missed=5, connected_delay=2.0,
                  post_connect_delay=3.4, client_name=None, aux_sub=True, aux_sub_pid=0x104A,
-                 aux_count=48, log_rx=False):
+                 aux_count=48, log_rx=False, module_version=MODULE_VERSION):
         if suite not in SUITE_COMMANDS:
             raise ValueError(f"suite must be 1-4 (got {suite})")
         self.connection_id = connection_id
@@ -172,6 +189,7 @@ class HandshakeConnection:
         self.aux_sub = aux_sub            # subscribe to aux buses 1-48 to read their real sources (verified on a frame)
         self.aux_sub_pid = aux_sub_pid
         self.aux_count = aux_count
+        self.module_version = parse_module_version(module_version)   # announced to the frame as 'V<version>'
         self.log_rx = log_rx              # log every inbound data packet (hex) to learn / verify formats
         self._aux_sub_ids = {}            # subscription id -> aux number
         self.aux_bus = {}                 # aux number -> source reported by the frame
@@ -466,7 +484,7 @@ class HandshakeConnection:
         stamp = time.strftime("%H:%M:%S", now)
         for pid, flags, did, data in (
                 (0x2008, 0x0300, 0x01000001, b"\x00\x08"),
-                (0x134F, 0x0800, 0x2F003001, f"V{MODULE_VERSION}\x00".encode()),
+                (0x134F, 0x0800, 0x2F003001, f"V{self.module_version}\x00".encode()),
                 (0x1350, 0x0800, 0x2F003001, f"{stamp}\x00".encode()),
                 (0x1351, 0x0800, 0x2F003001, f"{build}\x00".encode())):
             self._send_dyn(build_set_param(pid, flags, did, data, self._unique_aux_id()))
@@ -734,6 +752,7 @@ class GVGCPLBridgeUDP:
     def __init__(self, host, suite=1, live=False, ports=None, name="NTv2", fps=30.0):
         self.host = host
         self.fps = float(fps)        # frames per second used to convert {"frames": n} rates
+        self.module_version = MODULE_VERSION   # --version: the module version announced to the frame
         self.aux_state = {}          # aux number -> last commanded source
         self.rate_trans = {}         # me -> last commanded transition rate (seconds)
         self.rate_key = {}           # (me, keyer) -> last commanded keyer rate (seconds)
@@ -781,7 +800,7 @@ class GVGCPLBridgeUDP:
 
     def config_dict(self):
         conn = self._conn()
-        return {"ip": self.host, "suite": self.suite, "name": self.name,
+        return {"ip": self.host, "suite": self.suite, "name": self.name, "version": self.module_version,
                 "panel_name": f"{self.name} - Suite {self.suite}",
                 "tx_port": self.main_port, "rx_port": self.listener_port,      # UI field names (kept)
                 "main_port": self.main_port, "listener_port": self.listener_port,
@@ -826,6 +845,7 @@ class GVGCPLBridgeUDP:
 
     def _start_frame_connection(self):
         kw = dict(self.conn_kwargs)
+        kw.setdefault("module_version", self.module_version)
         kw.setdefault("client_name", f"{self.name} - Suite {self.suite}")
         self.manager.ensure_connection(CONN_ID, self.host, self.suite, self.udp_ports[self.suite], **kw)
 
@@ -997,7 +1017,7 @@ class GVGCPLBridgeUDP:
                 sock.sendall(_etp(
                     f"<Authentication-Request><Protocol>NT ETH POLLING</Protocol>"
                     f"<ProtocolVersion>3.0</ProtocolVersion><AppName>NT UDP Tally</AppName>"
-                    f"<AppVersion>1.0</AppVersion><Suite>{suite}</Suite></Authentication-Request>"
+                    f"<AppVersion>9.9</AppVersion><Suite>{suite}</Suite></Authentication-Request>"
                 ).encode("ascii"))
 
                 subscribed = False
@@ -1242,6 +1262,8 @@ async def serve(args):
 
     bridge = GVGCPLBridgeUDP(args.ip, suite=args.suite, live=args.live, ports=parse_ports(args.ports),
                              name=args.name, fps=args.fps)
+    bridge.module_version = args.version
+    logging.info(f"Module version announced to the frame: V{bridge.module_version}")
     logging.info(f"Panel name shown in the frame: '{bridge.name} - Suite {bridge.suite}'")
     logging.info("Local UDP ports (suite: main/listener): " +
                  ", ".join(f"{s}: {p[0]}/{p[1]}" for s, p in sorted(bridge.udp_ports.items())))
@@ -1282,7 +1304,7 @@ async def serve(args):
 
     try:
         async with websockets.serve(ws_handler, args.ws_host, args.ws_port, origins=None):
-            logging.info(f"NT V14 UDP Bridge listening on ws://{args.ws_host}:{args.ws_port} "
+            logging.info(f"NT UNIVERSAL UDP Bridge listening on ws://{args.ws_host}:{args.ws_port} "
                          f"({'LIVE' if args.live else 'DRY-RUN'}, suite {bridge.suite})")
             await asyncio.Future()
     finally:
@@ -1302,6 +1324,9 @@ if __name__ == "__main__":
                     help="local UDP ports per suite as suite=MAIN:LISTENER, e.g. --ports 1=6130:6131,2=6132:6133")
     ap.add_argument("--fps", type=float, default=30.0,
                     help="frame rate used to convert {\"frames\": n} transition/keyer rates to seconds (default 30)")
+    ap.add_argument("--version", "--Version", dest="version", default=MODULE_VERSION, type=_version_arg,
+                    help=f"module version announced to the frame, e.g. --version 20.1.1 (default {MODULE_VERSION}); "
+                         f"sent as 'V<version>'")
     ap.add_argument("--aux-sub", action="store_true", help="(default now; kept so old launch scripts still work)")
     ap.add_argument("--no-aux-sub", action="store_true",
                     help="do not subscribe to the aux buses (the UI then only shows the last aux route it sent)")
