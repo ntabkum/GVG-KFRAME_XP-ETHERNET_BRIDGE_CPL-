@@ -1,7 +1,7 @@
 # NTv2 — Universal GVG K-Frame CPL Bridge (`V100`)
 
 A Python WebSocket-to-UDP bridge for Grass Valley (GVG) K-Frame video switchers (compatible with firmware `14.7.1` – `20.1.1`). It implements the full GVG UDP handshake, dynamic port negotiation, heartbeat supervision, and real-time TCP ETP tally parsing.
-
+Serial 422 Editor mode is for future implementation.
 ---
 
 ## Features
@@ -20,9 +20,11 @@ A Python WebSocket-to-UDP bridge for Grass Valley (GVG) K-Frame video switchers 
 * **Safe Dry-Run Mode**: Runs without `--live` by default to validate JSON payloads and log commands without transmitting packets to the switcher.
 
 ---
+To run, use Connect100.bat which will open a python gvg bridge. On the GVG Frame, add the ip of the Bridge in two places, under node control panel and ip port for tally.
+Inside the batch file Connect100,bat you can edit the flag as needed.
 Flag,Default,Description
 
---ip,10.1.32.10,IP address or hostname of the GVG K-Frame.
+--ip,127.0.0.1 (default) ,IP address or hostname of the GVG K-Frame.
 
 --suite,1,"Target switcher suite (1, 2, 3, or 4)."
 
@@ -36,8 +38,13 @@ Flag,Default,Description
 
 --ports,Auto,"Override local UDP MAIN:LISTENER ports per suite (e.g., 1=6130:6131,2=6132:6133). Defaults to 6130/6131 for Suite 1, incrementing by 2 per suite."
 
---fps,30.0,"Frame rate used to convert frame-based rate commands (""frames"": n) to seconds."
-Ask Nava how to implement the bridge.
+--fps,30.0,"Frame rate used to convert frame-based rate commands (""frames"": n) to seconds." 23.976/24, 25/50, 29.97/30, and 59.94/60.
+
+--version 20.1.1 (default) This flag allow the bridge to provide a match version with your GVG frame.
+
+Ask Nava if you lost...My recommendation is to push the file to your prefered AI connector and have it made you a custom web ui base on your needed.
+Your AI should be able to find all the "control" to control to GVG frame 
+
 ## Requirements
 
 * Python 3.8+
